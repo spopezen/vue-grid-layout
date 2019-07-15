@@ -97,6 +97,10 @@
                 type: Object,
                 default: function(){return{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }},
             },
+            validateLayoutFn: {
+                type: Function,
+                default: () => true,
+            },
         },
         data: function () {
             return {
@@ -211,6 +215,11 @@
         methods: {
             layoutUpdate() {
                 if (this.layout !== undefined && this.originalLayout !== null) {
+                    if (!this.validateLayoutFn(this.layout)) {
+                        this.layout = this.originalLayout.slice();
+                        this.$emit("invalidLayout");
+                        return;
+                    }
                     if (this.layout.length !== this.originalLayout.length) {
                         // console.log("### LAYOUT UPDATE!", this.layout.length, this.originalLayout.length);
 
