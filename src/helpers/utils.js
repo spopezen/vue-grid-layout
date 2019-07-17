@@ -206,13 +206,18 @@ export function getStatics(layout: Layout): Array<LayoutItem> {
  * @param  {Boolean}    [isUserAction] If true, designates that the item we're moving is
  *                                     being dragged/resized by th euser.
  */
-export function moveElement(layout: Layout, l: LayoutItem, x: Number, y: Number, isUserAction: Boolean): Layout {
+export function moveElement(layout: Layout, l: LayoutItem,
+                            x: Number, y: Number, isUserAction: Boolean,
+                            maxRows: ?Number, maxColumns: ?Number): Layout {
   if (l.static) return layout;
+
+  console.log(l, x, y, isUserAction)
 
   // Short-circuit if nothing to do.
   //if (l.y === y && l.x === x) return layout;
 
   const movingUp = y && l.y > y;
+  if (l.y + l.h >= maxRows) return layout;
   // This is quite a bit faster than extending the object
   if (typeof x === 'number') l.x = x;
   if (typeof y === 'number') l.y = y;
@@ -239,9 +244,9 @@ export function moveElement(layout: Layout, l: LayoutItem, x: Number, y: Number,
 
     // Don't move static items - we have to move *this* element away
     if (collision.static) {
-      layout = moveElementAwayFromCollision(layout, collision, l, isUserAction);
+      layout = moveElementAwayFromCollision(layout, collision, l, isUserAction, maxRows, maxColumns);
     } else {
-      layout = moveElementAwayFromCollision(layout, l, collision, isUserAction);
+      layout = moveElementAwayFromCollision(layout, l, collision, isUserAction, maxRows, maxColumns);
     }
   }
 
@@ -259,7 +264,8 @@ export function moveElement(layout: Layout, l: LayoutItem, x: Number, y: Number,
  *                                   by the user.
  */
 export function moveElementAwayFromCollision(layout: Layout, collidesWith: LayoutItem,
-                                             itemToMove: LayoutItem, isUserAction: ?boolean): Layout {
+                                             itemToMove: LayoutItem, isUserAction: ?boolean,
+                                             maxRows: ?Number, maxColumns: ?Number): Layout {
 
   // If there is enough space above the collision to put this element, move it there.
   // We only do this on the main collision as this can get funky in cascades and cause
@@ -275,13 +281,23 @@ export function moveElementAwayFromCollision(layout: Layout, collidesWith: Layou
     };
     fakeItem.y = Math.max(collidesWith.y - itemToMove.h, 0);
     if (!getFirstCollision(layout, fakeItem)) {
-      return moveElement(layout, itemToMove, undefined, fakeItem.y);
+      console.log("move to fake item spot", itemToMove.i);
+      return moveElement(layout, itemToMove, undefined, fakeItem.y, false, maxRows, maxColumns);
     }
   }
 
   // Previously this was optimized to move below the collision directly, but this can cause problems
   // with cascading moves, as an item may actually leapflog a collision and cause a reversal in order.
-  return moveElement(layout, itemToMove, undefined, itemToMove.y + 1);
+
+  // if over max rows, don't move
+  console.log("this is the number of max rows: ", maxRows);
+  if (!!maxRows && itemToMove.y + itemToMove.h >= maxRows) {
+    console.log("HEYHEYHEYHEY - what the heck maaaan2", itemToMove.i);
+    return moveElement(layout, itemToMove, undefined, itemToMove.y, false, maxRows, maxColumns);
+    // return layout;
+  }
+  console.log("MOVIN ER DOWN", itemToMove.i);
+  return moveElement(layout, itemToMove, undefined, itemToMove.y + 1, false, maxRows, maxColumns);
 }
 
 /**

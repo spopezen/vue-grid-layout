@@ -215,11 +215,12 @@
         methods: {
             layoutUpdate() {
                 if (this.layout !== undefined && this.originalLayout !== null) {
-                    if (!this.validateLayoutFn(this.layout)) {
-                        this.layout = this.originalLayout.slice();
-                        this.$emit("invalidLayout");
-                        return;
-                    }
+                    console.log("its updating the layout yo")
+                    // if (!this.validateLayoutFn(this.layout)) {
+                    //     this.layout = this.originalLayout.slice();
+                    //     this.$emit("invalidLayout");
+                    //     return;
+                    // }
                     if (this.layout.length !== this.originalLayout.length) {
                         // console.log("### LAYOUT UPDATE!", this.layout.length, this.originalLayout.length);
 
@@ -239,6 +240,9 @@
 
                         this.lastLayoutLength = this.layout.length;
                         this.initResponsiveFeatures();
+                    } else {
+                        // resize or drag
+                        this.originalLayout = this.layout.slice()
                     }
 
                     compact(this.layout, this.verticalCompact);
@@ -262,7 +266,7 @@
                 return bottom(this.layout) * (this.rowHeight + this.margin[1]) + this.margin[1] + 'px';
             },
             dragEvent: function (eventName, id, x, y, h, w) {
-                //console.log(eventName + " id=" + id + ", x=" + x + ", y=" + y);
+                // console.log(eventName + " id=" + id + ", x=" + x + ", y=" + y);
                 let l = getLayoutItem(this.layout, id);
                 //GetLayoutItem sometimes returns null object
                 if (l === undefined || l === null){
@@ -286,18 +290,33 @@
                     });
                 }
 
+                // this.lastLayout = this.layout.slice()
+
+                // const { x: oldX, y: oldY } = l;
                 // set layout element coordinates to dragged position
                 l.x = x;
                 l.y = y;
                 // Move the element to the dragged location.
-                this.layout = moveElement(this.layout, l, x, y, true);
+                const newLayout = moveElement(this.layout, l, x, y, true, this.maxRows, this.colNum);
+                // if (!this.validateLayoutFn(newLayout)) {
+                //     this.layout = this.originalLayout;
+                //     this.$emit("invalidLayout");
+                //     return;
+                // }
+                this.layout = newLayout
                 compact(this.layout, this.verticalCompact);
+
+                // if (!this.validateLayoutFn(this.layout)) {
+                //     this.layout = this.originalLayout.slice();
+                //     this.$emit("invalidLayout");
+                // }
                 // needed because vue can't detect changes on array element properties
                 this.eventBus.$emit("compact");
                 this.updateHeight();
                 if (eventName === 'dragend') this.$emit('layout-updated', this.layout);
             },
             resizeEvent: function (eventName, id, x, y, h, w) {
+                // console.log(eventName + " id=" + id + ", w=" + w + ", h=" + h);
                 if (eventName === "resizestart" || eventName === "resizemove") {
                     this.placeholder.i = id;
                     this.placeholder.x = x;
@@ -320,8 +339,14 @@
                 if (l === undefined || l === null){
                     l = {h:0, w:0}
                 }
+                // const { h: oldH, w: oldW } = l;
                 l.h = h;
                 l.w = w;
+                // if (!this.validateLayoutFn(this.layout)) {
+                //     this.layout = this.originalLayout;
+                //     this.$emit("invalidLayout");
+                //     return;
+                // }
 
                 if (this.responsive) this.responsiveGridLayout();
 
