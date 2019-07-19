@@ -114,6 +114,7 @@
                 layouts: {}, // array to store all layouts from different breakpoints
                 lastBreakpoint: null, // store last active breakpoint
                 originalLayout: null, // store original Layout
+                localLayout: [],
             };
         },
         created () {
@@ -132,7 +133,7 @@
             self.eventBus = self._provided.eventBus;
             self.eventBus.$on('resizeEvent', self.resizeEventHandler);
             self.eventBus.$on('dragEvent', self.dragEventHandler);
-            self.$emit('layout-created', self.layout);
+            self.$emit('layout-created', self.localLayout);
         },
         beforeDestroy: function(){
             //Remove listeners
@@ -143,14 +144,14 @@
 			this.erd.uninstall(this.$refs.item);
         },
         beforeMount: function() {
-            this.$emit('layout-before-mount', this.layout);
+            this.$emit('layout-before-mount', this.localLayout);
         },
         mounted: function() {
-            this.$emit('layout-mounted', this.layout);
+            this.$emit('layout-mounted', this.localLayout);
             this.$nextTick(function () {
-                validateLayout(this.layout);
+                validateLayout(this.localLayout);
 
-                this.originalLayout = this.layout;
+                this.originalLayout = this.localLayout;
                 const self = this;
                 this.$nextTick(function() {
                     if (self.width === null) {
@@ -161,7 +162,7 @@
                         //self.width = self.$el.offsetWidth;
                         addWindowEventListener('resize', self.onWindowResize);
                     }
-                    compact(self.layout, self.verticalCompact);
+                    compact(self.localLayout, self.verticalCompact);
 
                     self.updateHeight();
                     self.$nextTick(function () {
@@ -173,7 +174,7 @@
                         });
                     });
 
-                    self.$emit('layout-ready', self.layout);
+                    self.$emit('layout-ready', self.localLayout);
                 });
             });
         },
@@ -185,7 +186,10 @@
                     this.updateHeight();
                 });
             },
-            layout: function () {
+            layout: function (val) {
+                this.localLayout = val.map(item => JSON.parse(JSON.stringify(item)));
+            },
+            localLayout: function () {
                 this.layoutUpdate();
             },
             colNum: function (val) {
@@ -210,14 +214,14 @@
         },
         methods: {
             layoutUpdate() {
-                if (this.layout !== undefined && this.originalLayout !== null) {
-                    if (this.layout.length !== this.originalLayout.length) {
-                        // console.log("### LAYOUT UPDATE!", this.layout.length, this.originalLayout.length);
+                if (this.localLayout !== undefined && this.originalLayout !== null) {
+                    if (this.localLayout.length !== this.originalLayout.length) {
+                        // console.log("### LAYOUT UPDATE!", this.localLayout.length, this.originalLayout.length);
 
-                        let diff = this.findDifference(this.layout, this.originalLayout);
+                        let diff = this.findDifference(this.localLayout, this.originalLayout);
                         if (diff.length > 0){
                             // console.log(diff);
-                            if (this.layout.length > this.originalLayout.length) {
+                            if (this.localLayout.length > this.originalLayout.length) {
                                 this.originalLayout = this.originalLayout.concat(diff);
                             } else {
                                 this.originalLayout = this.originalLayout.filter(obj => {
@@ -228,11 +232,11 @@
                             }
                         }
 
-                        this.lastLayoutLength = this.layout.length;
+                        this.lastLayoutLength = this.localLayout.length;
                         this.initResponsiveFeatures();
                     }
 
-                    compact(this.layout, this.verticalCompact);
+                    compact(this.localLayout, this.verticalCompact);
                     this.eventBus.$emit("updateWidth", this.width);
                     this.updateHeight();
                 }
@@ -250,11 +254,11 @@
             },
             containerHeight: function () {
                 if (!this.autoSize) return;
-                return bottom(this.layout) * (this.rowHeight + this.margin[1]) + this.margin[1] + 'px';
+                return bottom(this.localLayout) * (this.rowHeight + this.margin[1]) + this.margin[1] + 'px';
             },
             dragEvent: function (eventName, id, x, y, h, w) {
                 //console.log(eventName + " id=" + id + ", x=" + x + ", y=" + y);
-                let l = getLayoutItem(this.layout, id);
+                let l = getLayoutItem(this.localLayout, id);
                 //GetLayoutItem sometimes returns null object
                 if (l === undefined || l === null){
                     l = {x:0, y:0}
@@ -277,16 +281,16 @@
                     });
                 }
 
-                // set layout element coordinates to dragged position
+                // set localLayout element coordinates to dragged position
                 l.x = x;
                 l.y = y;
                 // Move the element to the dragged location.
-                this.layout = moveElement(this.layout, l, x, y, true);
-                compact(this.layout, this.verticalCompact);
+                this.localLayout = moveElement(this.localLayout, l, x, y, true);
+                compact(this.localLayout, this.verticalCompact);
                 // needed because vue can't detect changes on array element properties
                 this.eventBus.$emit("compact");
                 this.updateHeight();
-                if (eventName === 'dragend') this.$emit('layout-updated', this.layout);
+                if (eventName === 'dragend') this.$emit('layout-updated', this.localLayout);
             },
             resizeEvent: function (eventName, id, x, y, h, w) {
                 if (eventName === "resizestart" || eventName === "resizemove") {
@@ -306,7 +310,7 @@
                         this.isDragging = false;
                     });
                 }
-                let l = getLayoutItem(this.layout, id);
+                let l = getLayoutItem(this.localLayout, id);
                 //GetLayoutItem sometimes return null object
                 if (l === undefined || l === null){
                     l = {h:0, w:0}
@@ -316,11 +320,11 @@
 
                 if (this.responsive) this.responsiveGridLayout();
 
-                compact(this.layout, this.verticalCompact);
+                compact(this.localLayout, this.verticalCompact);
                 this.eventBus.$emit("compact");
                 this.updateHeight();
 
-                if (eventName === 'resizeend') this.$emit('layout-updated', this.layout);
+                if (eventName === 'resizeend') this.$emit('layout-updated', this.localLayout);
             },
 
             // finds or generates new layouts for set breakpoints
@@ -329,11 +333,11 @@
                 let newBreakpoint = getBreakpointFromWidth(this.breakpoints, this.width);
                 let newCols = getColsFromBreakpoint(newBreakpoint, this.cols);
 
-                // save actual layout in layouts
+                // save actual localLayout in layouts
                 if(this.lastBreakpoint != null && !this.layouts[this.lastBreakpoint])
-                    this.layouts[this.lastBreakpoint] = cloneLayout(this.layout);
+                    this.layouts[this.lastBreakpoint] = cloneLayout(this.localLayout);
 
-                // Find or generate a new layout.
+                // Find or generate a new localLayout.
                 let layout = findOrGenerateResponsiveLayout(
                     this.originalLayout,
                     this.layouts,
