@@ -97,10 +97,6 @@
                 type: Object,
                 default: function(){return{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }},
             },
-            validateLayoutFn: {
-                type: Function,
-                default: function() { return true },
-            }
         },
         data: function () {
             return {
@@ -193,15 +189,7 @@
             layout: function (val) {
                 this.localLayout = val.map(item => JSON.parse(JSON.stringify(item)));
             },
-            localLayout: function (val) {
-                if (this.validateLayoutFn && this.validateLayoutFn(val)) {
-                    this.lastValidLayout = val.map(item => JSON.parse(JSON.stringify(item)));
-                } else if (this.validateLayoutFn) {
-                    this.localLayout.forEach((item) => {
-                        const idx = this.lastValidLayout.findIndex(item2 => item.i === item2.i);
-                        this.$set(this.localLayout, idx, Object.assign(item, this.lastValidLayout[idx]));
-                    })
-                }
+            localLayout: function () {
                 this.layoutUpdate();
             },
             colNum: function (val) {
@@ -294,6 +282,8 @@
                 }
 
                 // set localLayout element coordinates to dragged position
+                const prevX = l.x;
+                const prevY = l.y;
                 l.x = x;
                 l.y = y;
                 // Move the element to the dragged location.
@@ -303,16 +293,22 @@
                 this.eventBus.$emit("compact");
                 this.updateHeight();
 
-                if (this.localLayout.length) this.$emit('layout-update', this.localLayout);
+                if (this.localLayout.length && (prevX !== x || prevY !== y)) this.$emit('layout-update', this.localLayout);
                 if (eventName === 'dragend') this.$emit('layout-updated', this.localLayout);
             },
             resizeEvent: function (eventName, id, x, y, h, w) {
+                let l = getLayoutItem(this.localLayout, id);
+                //GetLayoutItem sometimes return null object
+                if (l === undefined || l === null){
+                    l = {h:0, w:0}
+                }
+
                 if (eventName === "resizestart" || eventName === "resizemove") {
                     this.placeholder.i = id;
                     this.placeholder.x = x;
                     this.placeholder.y = y;
-                    this.placeholder.w = w;
-                    this.placeholder.h = h;
+                    this.placeholder.w = l.w;
+                    this.placeholder.h = l.h;
                     this.$nextTick(function() {
                         this.isDragging = true;
                     });
@@ -324,11 +320,9 @@
                         this.isDragging = false;
                     });
                 }
-                let l = getLayoutItem(this.localLayout, id);
-                //GetLayoutItem sometimes return null object
-                if (l === undefined || l === null){
-                    l = {h:0, w:0}
-                }
+
+                const prevH = l.h;
+                const prevW = l.w;
                 l.h = h;
                 l.w = w;
 
@@ -338,7 +332,7 @@
                 this.eventBus.$emit("compact");
                 this.updateHeight();
 
-                if (this.localLayout.length) this.$emit('layout-update', this.localLayout);
+                if (this.localLayout.length && (prevH !== h || prevW !== w)) this.$emit('layout-update', this.localLayout);
                 if (eventName === 'resizeend') this.$emit('layout-updated', this.localLayout);
             },
 
