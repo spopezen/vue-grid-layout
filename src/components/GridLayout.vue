@@ -97,6 +97,10 @@
                 type: Object,
                 default: function(){return{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }},
             },
+            validateLayoutFn: {
+                type: Function,
+                default: function() { return true },
+            }
         },
         data: function () {
             return {
@@ -189,7 +193,15 @@
             layout: function (val) {
                 this.localLayout = val.map(item => JSON.parse(JSON.stringify(item)));
             },
-            localLayout: function () {
+            localLayout: function (val) {
+                if (this.validateLayoutFn && this.validateLayoutFn(val)) {
+                    this.lastValidLayout = val.map(item => JSON.parse(JSON.stringify(item)));
+                } else if (this.validateLayoutFn) {
+                    this.localLayout.forEach((item) => {
+                        const idx = this.lastValidLayout.findIndex(item2 => item.i === item2.i);
+                        this.$set(this.localLayout, idx, Object.assign(item, this.lastValidLayout[idx]));
+                    })
+                }
                 this.layoutUpdate();
             },
             colNum: function (val) {
@@ -290,6 +302,8 @@
                 // needed because vue can't detect changes on array element properties
                 this.eventBus.$emit("compact");
                 this.updateHeight();
+
+                if (this.localLayout.length) this.$emit('layout-update', this.localLayout);
                 if (eventName === 'dragend') this.$emit('layout-updated', this.localLayout);
             },
             resizeEvent: function (eventName, id, x, y, h, w) {
@@ -324,6 +338,7 @@
                 this.eventBus.$emit("compact");
                 this.updateHeight();
 
+                if (this.localLayout.length) this.$emit('layout-update', this.localLayout);
                 if (eventName === 'resizeend') this.$emit('layout-updated', this.localLayout);
             },
 
