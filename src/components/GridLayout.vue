@@ -114,7 +114,7 @@
                 layouts: {}, // array to store all layouts from different breakpoints
                 lastBreakpoint: null, // store last active breakpoint
                 originalLayout: null, // store original Layout
-                localLayout: [],
+                localLayout: this.layout.map(item => JSON.parse(JSON.stringify(item))),
             };
         },
         created () {
