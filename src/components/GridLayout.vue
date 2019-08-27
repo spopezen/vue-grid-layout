@@ -114,7 +114,8 @@
                 layouts: {}, // array to store all layouts from different breakpoints
                 lastBreakpoint: null, // store last active breakpoint
                 originalLayout: null, // store original Layout
-                localLayout: [],
+                // fill localLayout on init to show placeholder first time on right positions;
+                localLayout: JSON.parse(JSON.stringify(this.layout)),
             };
         },
         created () {

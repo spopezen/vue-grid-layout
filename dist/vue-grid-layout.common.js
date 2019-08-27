@@ -5781,7 +5781,7 @@ var GridLayoutvue_type_template_id_e655381e_render = function () {var _vm=this;v
 var GridLayoutvue_type_template_id_e655381e_staticRenderFns = []
 
 
-// CONCATENATED MODULE: ./src/components/GridLayout.vue?vue&type=template&id=e655381e&
+// CONCATENATED MODULE: ./src/components/GridLayout.vue?vue&type=template&id=5a75a062&
 
 // CONCATENATED MODULE: ./src/helpers/responsiveUtils.js
 
@@ -6090,7 +6090,8 @@ var elementResizeDetectorMaker = __webpack_require__("eec4");
       // store last active breakpoint
       originalLayout: null,
       // store original Layout
-      localLayout: []
+      // fill localLayout on init to show placeholder first time on right positions;
+      localLayout: JSON.parse(JSON.stringify(this.layout))
     };
   },
   created: function created() {
@@ -6367,8 +6368,8 @@ var GridLayoutvue_type_style_index_0_lang_css_ = __webpack_require__("e279");
 
 var GridLayout_component = normalizeComponent(
   components_GridLayoutvue_type_script_lang_js_,
-  GridLayoutvue_type_template_id_e655381e_render,
-  GridLayoutvue_type_template_id_e655381e_staticRenderFns,
+  GridLayoutvue_type_template_id_5a75a062_render,
+  GridLayoutvue_type_template_id_5a75a062_staticRenderFns,
   false,
   null,
   null,
